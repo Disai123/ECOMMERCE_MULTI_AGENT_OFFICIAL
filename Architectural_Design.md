@@ -1,117 +1,91 @@
-# Architectural Design Document - E-commerce Multi-Agent Platform
+# Architectural Design: Multi-Agent E-commerce Assistant
 
 ## 1. Introduction
 
 ### 1.1 Purpose of the System
-The purpose of this document is to define the technical architecture for the E-commerce Platform with a Multi-Agent Assistant. The system combines a traditional e-commerce engine with an AI-driven automation layer, allowing users to perform complex shopping tasks through natural language.
+This document defines the architecture of a **Multi-Agent Orchestration Layer** built on top of an existing e-commerce platform. It enables automated shopping workflows via specialized AI actors.
 
 ### 1.2 High-Level Description
-The application is a full-stack system comprising:
-*   **Customer Frontend:** A React-based SPA for manual browsing and AI interaction.
-*   **Admin Frontend:** A dashboard for inventory and order management.
-*   **E-commerce Backend:** A FastAPI service for core business logic.
-*   **Multi-Agent Assistant:** An AI layer using the Model Context Protocol (MCP) to automate user actions.
+The system uses **LangGraph** to manage a cyclic state machine. A **Supervisor** model determines which specialized **Worker Agent** should handle the current turn based on the user's intent. All tools are executed in the context of a dynamically injected `user_id`.
 
 ---
 
 ## 2. Architecture Overview
 
-### 2.1 System Architecture
-The system follows a **Micro-Agent Assisted Tiered Architecture**:
-1.  **Presentation Layer:** React.js + Tailwind CSS.
-2.  **Orchestration Layer:** Multi-Agent system powered by MCP to coordinate specialized tasks.
-3.  **Application Layer:** FastAPI RESTful endpoints.
-4.  **Data Layer:** PostgreSQL (structured data) + Vector Store (optional, for product embeddings).
+### 2.1 Multi-Agent State Machine (LangGraph)
+The core logic resides in a graph-based orchestration:
+1.  **Supervisor Node**: Analyzes text to choose the `next` agent or `FINISH`.
+2.  **Worker Nodes**: specialized prompts with access to specific toolsets.
+3.  **Tool Nodes**: Execute Python functions (SQL queries, Cart CRUD) and return results to the workers.
 
-### 2.2 Architecture Diagram (Conceptual)
-*   **User Client:** Interacts with the React Frontend.
-*   **AI Widget:** Communicates with the **Agent Orchestrator** in the backend.
-*   **Agent Orchestrator:** Uses LLM (Large Language Model) to route requests to specialized agents (Search, Cart, Checkout).
-*   **MCP Protocol:** Standardized interface for agents to access backend "Tools" (API endpoints) and shared context.
-*   **Backend Services:** Auth, Product Catalog, Order Processing.
-*   **Database:** Persistent storage for all entities.
+### 2.2 Orchestration Diagram (ASCII)
+
+```
+       +-----------------------+
+       |   User Input (Chat)   |
+       +-----------+-----------+
+                   |
+        +----------v----------+
+        |  Supervisor Engine  | <---------------+
+        | (GPT-4o-mini Router)|                 |
+        +----------+----------+                 |
+                   |                            |
+      +------------+------------+               |
+      |            |            |               |
++-----v-----+ +----v----+ +-----v-----+         |
+| Product   | | Cart    | | Order     |         |
+| SearchER  | | Manager | | Tracker   |         |
++-----+-----+ +----+----+ +-----+-----+         |
+      |            |            |               |
+      |      +-----v-----+      |               |
+      +------> Tool Node <------+               |
+             | Handler   |                      |
+             +-----+-----+                      |
+                   |                            |
+                   +----------------------------+
+                    (Update State & Loop)
+```
 
 ---
 
 ## 3. Application Architecture
 
-### 3.1 Frontend Design (Consistent with @[Ecommerce_webapp])
-*   **Framework:** React 18 with Vite.
-*   **Styling:** Tailwind CSS (Modern, Responsive).
-*   **State Management:** Context API (Auth, Cart) + UI state for the Assistant.
-*   **Components:** Modular architecture with shared UI libraries (Lucide React for icons).
+### 3.1 Backend: FastAPI + LangGraph
+-   **Framework**: FastAPI for RESTful endpoints (`/chat`, `/auth`).
+-   **Intelligence Layer**:
+    -   **`AgentState`**: A TypedDict containing `messages`, `next_worker`, and `user_id`.
+    -   **Supervisor**: Uses a Pydantic "Router" model to output the name of the next node.
+    -   **Worker Agents**: `Search` (Catalog tools), `Cart` (Transactional tools), `System` (Support).
 
-### 3.2 Backend Design
-*   **Framework:** FastAPI (Python).
-*   **Agent framework:** Integration with an MCP-compliant agent library (e.g., LangGraph or custom MCP implementation).
-*   **Statelessness:** JWT-based authentication ensures scalability.
-*   **Worker Agents:**
-    *   **Search Agent:** Translates natural language to SQL/Query filters.
-    *   **Action Agent:** Executes "Add to Cart" and "Delete Item" via API calls.
-    *   **Checkout Agent:** Validates shipping data and triggers the payment flow.
+### 3.2 Security: User Context Injection
+A critical architectural pattern is used to ensure security:
+-   **Inbound**: The `/chat` endpoint extracts `user_id` from the JWT.
+-   **Execution**: The `user_id` is passed into the `AgentState`.
+-   **Tool Execution**: Before calling a Cart tool, the system programmatically injects the `user_id` into the tool's arguments, preventing agents from modifying other users' carts.
 
-### 3.3 APIs and Integrations
-*   **REST API:** Standard endpoints for CRUD operations.
-*   **Agent Tools:** Functional abstraction of API endpoints exposed to the AI agents.
-*   **External Integrations:** Stripe for payments, Neon for PostgreSQL hosting.
+### 3.3 Data Layer: PostgreSQL (Neon DB)
+-   The assistant directly consumes the existing DB schema (`Products`, `Carts`, `Orders`).
+-   It uses SQLAlchemy for ORM interactions within the Agent Tools.
 
 ---
 
-## 4. Data Architecture
+## 4. Deployment & Infrastructure
+-   **Platform**: Render (Horizontal Scaling enabled).
+-   **Memory**: Each agent invocation is stateless and persisted via the `AgentState` within the FastAPI request cycle.
+-   **Environment**: Python 3.11+.
 
-### 4.1 Database Design (Schema)
-*   **Users:** `id, email, password_hash, full_name, role (admin/user)`.
-*   **Products:** `id, name, description, price, stock, category_id, image_url`.
-*   **Orders:** `id, user_id, order_total, status, shipping_address`.
-*   **Order_Items:** `id, order_id, product_id, quantity, price_at_purchase`.
-*   **Agent_Sessions:** `id, user_id, conversation_summary, last_seen_product_ids`.
-
-### 4.2 Data Flow
-1.  **Manual:** User Input -> React Component -> FastAPI Endpoint -> DB.
-2.  **AI-Assisted:** User Chat -> Orchestrator -> Tool Execution (FastAPI Internal) -> Response to Chat.
+## 5. Non-Functional Considerations
+-   **Observability**: Agent handoffs are logged to track "Routing Failure" rates.
+-   **Scalability**: The Supervisor pattern allows adding new specialized agents (e.g., "RefundAgent") without refactoring the core logic.
+-   **Robustness**: If the Supervisor is unsure, it defaults to a general support worker for human-like clarification.
 
 ---
 
-## 5. Technology Stack
+# Recreation Prompt: Architectural Design
 
-*   **Frontend:** React, Vite, Tailwind CSS, Axios, React Router.
-*   **Backend:** Python 3.11+, FastAPI, SQLAlchemy, Pydantic.
-*   **Agents:** MCP (Model Context Protocol), OpenAI/Anthropic SDKs.
-*   **Database:** PostgreSQL (Neon).
-*   **Auth:** PyJWT (stateless tokens).
-*   **Deployment:** Render (Hosting), GitHub Actions (CI/CD).
+> **Role**: You are a Software Solution Architect.
+> **Requirement**: Provide the BRD and UI/UX Wireframes.
+> **Task**: Create a complete Architectural Design Document in ASCII format for the Multi-Agent E-commerce Assistant.
+> **Sections Required**: Introduction, Architecture Overview (Diagram in ASCII), Application Architecture (React.js Frontend, FastAPI Backend with Python 3.10/3.11, REST APIs, PostgreSQL Neon DB, LangGraph for orchestration), Deployment Architecture, Non-Functional Considerations.
+> **Guidelines**: Clear, structured, and easy to understand for developers and stakeholders.
 
----
-
-## 6. Security Architecture
-
-### 6.1 Authentication & Authorization
-*   **JWT:** Secure token-based access.
-*   **RBAC:** Role-Based Access Control to separate Admin and Customer capabilities.
-*   **Agent Scoping:** Agents only have "Write" access to the current active user's cart—never broad database access.
-
-### 6.2 Data Protection
-*   **HTTPS:** TLS encryption for all traffic.
-*   **Sanitization:** Strict input validation via Pydantic to prevent SQL/Prompt injection.
-*   **Compliance:** PCI-DSS compliance by redirecting payment flows to Stripe.
-
----
-
-## 7. Deployment Architecture
-
-### 7.1 Hosting Environment
-*   **Cloud Platform:** Render (Web Services for Backend, Static Sites for Frontend).
-*   **Database:** Managed PostgreSQL via Neon.
-
-### 7.2 Scalability & Performance
-*   **Horizontal Scaling:** Multiple FastAPI instances behind Render's load balancer.
-*   **Latency:** Minimal response time for agents through streaming LLM responses.
-
----
-
-## 8. Non-Functional Considerations
-
-*   **Reliability:** Agent fallback mechanisms—if an agent fails, the user is prompted to complete the action manually.
-*   **Maintainability:** Clean separation between the E-commerce logic and the Agent logic (Clean Architecture).
-*   **Performance:** Fast page loads using Vite and optimized Tailwind CSS builds.
-*   **Availability:** High availability backed by Render's infrastructure SLA.

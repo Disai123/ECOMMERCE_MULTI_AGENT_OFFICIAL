@@ -1,59 +1,46 @@
-# Deployment Guide: E-commerce Multi-Agent Platform
+# Deployment Guide: Multi-Agent E-commerce Extension
 
-This guide provides instructions for deploying the full-stack application.
+This guide details the deployment of the Multi-Agent Assistant into your existing E-commerce infrastructure on Render.
 
-## 1. Prerequisites
-- Python 3.11+
-- Node.js & npm
-- PostgreSQL database (or a cloud provider like Neon/RDS)
-- OpenAI API Key (or equivalent for LangGraph)
+## 1. Environment Configuration
+The Multi-Agent system relies on **LangGraph Orchestration**. Ensure the following production-ready environment variables are set in Render:
+-   `OPENAI_API_KEY`: Production key for GPT-4o-mini.
+-   `DATABASE_URL`: Connection string for the Neon PostgreSQL database.
+-   `DEBUG`: Set to `False` to prevent sensitive trace leakage.
 
-## 2. Backend Deployment (FastAPI)
+## 2. Code Synchronization
+The project is structure to merge the Assistant directly into the main application.
+1.  **Commit Agents**: Ensure the `backend/agents/agent_graph.py` and `backend/agents/tools.py` are included in the main branch.
+2.  **Dependencies**: Verify `langgraph` and `langchain-openai` are in the root `requirements.txt`.
+3.  **Push**:
+    ```bash
+    git push origin main
+    ```
 
-### Step 1: Environment Setup
-Create a `.env` file in the `backend/` directory:
-```env
-DATABASE_URL=postgresql://user:password@host:port/dbname
-SECRET_KEY=your_super_secret_key
-ALGORITHM=HS256
-OPENAI_API_KEY=sk-proj-xxxx
-```
+## 3. Database & Migrations
+The agents require specific tables to persist conversation history and short-term state.
+-   **Run Migrations**: Use the Render shell or an automated startup script to create `agent_sessions` and `agent_logs` tables.
+-   **Direct Command**:
+    ```bash
+    python -m backend.seed # Run once to ensure core product/user data exists
+    ```
 
-### Step 2: Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+## 4. Scaling the Assistant
+To handle high conversational traffic:
+- **Horizontal Scaling**: Render allows spinning up multiple web service instances. The LangGraph state is kept in the database (or shared memory if configured), allowing for seamless handoffs across instances.
+- **Log Monitoring**: Monitor the `/chat` endpoint latency. If it exceeds 3s, consider moving to a higher Render tier or optimizing the Supervisor prompt.
 
-### Step 3: Run with Uvicorn
-For production:
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
+## 5. Security Checklist
+- [ ] Verify that all tool calls in production are strictly scoped by `user_id`.
+- [ ] Ensure the `/chat` endpoint is protected by the `get_current_user` dependency.
+- [ ] Check CORS settings to allow only your production frontend domain.
 
-## 3. Frontend Deployment (React + Vite)
+---
 
-### Step 1: Configure API URL
-Update `src/api.js` or `.env` to point to the backend URL:
-```env
-VITE_API_BASE_URL=https://your-backend-url.com
-```
+# Recreation Prompt: Render Deployment Guide
 
-### Step 2: Build and Deploy
-```bash
-npm install
-npm run build
-```
-Deploy the contents of the `dist/` folder to a static hosting provider (Vercel, Netlify, or Render Static Site).
+> **Requirement**: Provide a deployment guide for Render explaining:
+> **Task**: How to deploy the updated multi-agent Assistant code and update the existing deployed e-commerce application.
+> **Sections Required**: Pull latest changes, Apply migrations, Update environment variables, Restart services safely.
+> **Guidelines**: Create this as a deployment guide document.
 
-## 4. Database Setup
-Ensure tables are created by running the app once (FastAPI's `Base.metadata.create_all` will handle it) or use Alembic for migrations.
-To seed initial data:
-```bash
-python seed.py
-```
-
-## 5. Deployment Checklist
-- [ ] CORS is configured in `main.py` to allow the frontend domain.
-- [ ] `SECRET_KEY` is a long, random string.
-- [ ] API keys are stored as secrets, not committed to Git.
-- [ ] Database is accessible from the production environment.

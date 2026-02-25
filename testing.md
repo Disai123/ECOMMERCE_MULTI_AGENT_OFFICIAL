@@ -36,3 +36,12 @@ Run the following command in the `backend/` directory:
 pytest
 ```
 *(Note: Ensure your `.env` is configured for a test database if running automated DB tests.)*
+
+---
+
+# Recreation Prompt: API Testing & Validation
+
+> **Task**: Create a separate testing and validation document (`assistant_api_testing.md`) that explains:
+> **Sections Required**: API testing strategy for the Assistant Chat feature, Validation steps (Chat input/output, Cart updates, Checkout triggers, Order tracking responses), Tools and approach (manual + automated testing).
+> **Guidelines**: Only include Assistant-related APIs.
+

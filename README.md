@@ -1,6 +1,6 @@
 # E-commerce Platform with Multi-Agent Assistant
 
-A modern full-stack e-commerce application featuring an AI shopping assistant powered by LangGraph and MCP.
+A modern full-stack e-commerce application featuring an AI shopping assistant powered by LangGraph.
 
 ## Features
 
@@ -8,6 +8,7 @@ A modern full-stack e-commerce application featuring an AI shopping assistant po
 - **AI Assistant:** Conversational agent that can search items and automate checkout using LangGraph.
 - **Admin Section:** Simple order management (via API).
 - **Modern UI:** Responsive design built with React and Tailwind CSS.
+
 
 ## Setup Instructions
 
@@ -31,4 +32,19 @@ A modern full-stack e-commerce application featuring an AI shopping assistant po
 ## Technology Stack
 - **Frontend:** React, Vite, Tailwind CSS, Axios, Context API.
 - **Backend:** FastAPI, SQLAlchemy, PostgreSQL.
-- **AI:** LangGraph, LangChain, MCP.
+- **AI:** LangGraph, LangChain.
+
+---
+
+# Recreation Prompt: Core Implementation (Coding)
+
+> **Role**: You are a Senior Full-Stack Engineer and UI/UX Expert.
+> **Task**: Build a complete, production-ready Multi-Agent E-commerce Assistant (backend + frontend) and attach it to the existing e-commerce application.
+> **Requirements**:
+> 1. **Architecture**: Strictly follow the Supervisor-Worker pattern using LangGraph. NO MCP.
+> 2. **Backend**: FastAPI (Python 3.10/3.11), REST-based APIs, modular code. Agent handles conversational shopping, carting, checkout, and tracking.
+> 3. **Frontend**: React.js with modern responsive UI (Tailwind), chat-based experience.
+> 4. **Database**: Use existing PostgreSQL Neon DB. Create migrations for agent-specific only.
+> 5. **Quality**: Error-free, complete, runnable, and includes unit/integration tests.
+> **Output**: Fully working, bug-free codebase integrated into the existing project.
+

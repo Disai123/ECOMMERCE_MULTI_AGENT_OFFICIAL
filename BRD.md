@@ -1,127 +1,106 @@
 # Business Requirement Document (BRD)
-## Project Name: E-commerce Platform with Multi-Agent Assistant
-**Version:** 1.0  
-**Date:** 2025-12-24  
-**Status:** Draft  
+## Project Name: Multi-Agent E-commerce Assistant (Supervisor Pattern)
+**Version:** 1.1  
+**Status:** In-Development
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Purpose
-The purpose of this document is to define the business requirements for the development of a basic e-commerce website integrated with an advanced AI assistant. This assistant utilizes a multi-agent architecture compliant with the Model Context Protocol (MCP) to automate user actions such as searching for products, adding items to a cart, and completing checkout.
+Definition of requirements for a sophisticated **Multi-Agent AI Assistant** extension. This assistant will serve as the primary interface for autonomous shopping tasks within an existing e-commerce environment.
 
 ### 1.2 Background
-The client seeks to enter the digital market with a streamlined e-commerce solution. To distinguish the platform from competitors and enhance user experience, the system will feature a "Do-It-For-Me" AI capability. This allows users to instruct an agent to perform shopping tasks for them, simulating a concierge-like experience.
+The client has a stable e-commerce platform. The goal is to move beyond manual navigation into an **AI-Orchestrated** experience where multiple specialized agents cooperate to fulfill user requests entirely through natural language.
 
-### 1.3 Project Scope
-The scope of the project includes:
-*   **Customer Portal:** A web interface for users to browse, search, and purchase products manually.
-*   **Admin Portal:** A simple backend for business owners to manage inventory and view orders.
-*   **AI Assistant:** A conversational interface powered by multi-agent MCP architecture to execute shopping tasks on behalf of the user.
+### 1.3 Project Scope (Agent-Specific)
+*   **Orchestration Logic**: Implementation of a **Supervisor Agent** to route requests and maintain state.
+*   **Worker Specialized Agents**:
+    *   **ProductSearch Agent**: Specialized in deep catalog navigation and specification comparison.
+    *   **CartManager Agent**: Specialized in transactional state management (Cart CRUD + Checkout logic).
+    *   **OrderTracker Agent**: Specialized in reading historical transaction data.
+*   **Platform Integration**: A "Chat-First" UI widget that links conversational intent to backend tools.
 
 ### 1.4 Objectives
-*   Launch a secure and responsive e-commerce web application.
-*   Implement a multi-agent AI system capable of autonomous navigation and task execution (Add to Cart, Checkout) via MCP.
-*   Provide a seamless user experience that bridges manual browsing and AI-assisted shopping.
-*   Ensure secure payment processing and data protection.
+*   Implement a **multi-agent state machine** (LangGraph) capable of multi-turn reasoning.
+*   Automate the full funnel: Search -> Select -> Add to Cart -> Checkout.
+*   Ensure the assistant acts with the authority of the authenticated user (Session handling).
 
 ---
 
 ## 2. Business Requirements
 
-### 2.1 Functional Requirements
-
-#### 2.1.1 E-commerce Core (Customer)
-*   **User Account:** Registration, Login, Profile Management (Address, Payment methods).
-*   **Product Discovery:** Product catalog, Search functionality, Category filtering, Product detailed views.
-*   **Shopping Cart:** Add/Remove items, Update quantities, View total cost.
-*   **Checkout:** Shipping address selection, Payment gateway integration, Order confirmation.
-*   **Order Tracking:** View order history and current status.
-
-#### 2.1.2 Admin Module
-*   **Product Management:** Add, Edit, Delete products; Manage stock levels; Upload images.
-*   **Order Management:** View incoming orders, Update order status (Processing, Shipped, Delivered).
-
-#### 2.1.3 Multi-Agent AI Assistant
-*   **Conversational Interface:** A chat widget accessible from any page.
-*   **Intent Recognition:** The agent must understand user commands (e.g., "Buy me a red shirt under $20").
-*   **Autonomous Action:** The agent must be able to:
-    *   Search for products based on natural language queries.
-    *   Add specific items to the user's cart.
-    *   Initiate and guide the checkout process.
-*   **MCP Integration:** Use the Model Context Protocol to facilitate communication between the main assistant agent and specialized sub-agents (e.g., Search Agent, Transaction Agent).
+### 2.1 Functional Requirements (Multi-Agent Logic)
+*   **Intent Detection & Routing**: The system must use a Supervisor to parse complex prompts (e.g., "Find me a cheap laptop and check if it's in stock before adding to my cart").
+*   **Agent Cooperation**: Worker agents must pass relevant context (e.g., Product IDs) back to the Supervisor for subsequent handoffs.
+*   **Autonomous Cart Manipulation**: Agents must be able to verify product availability before performing a "Write" operation to the user's cart.
+*   **Agent-Led Checkout**: The assistant must guide the user through the checkout phase, summarizing shipping and total costs conversationally.
+*   **Historical Inquiry**: Assistant must provide status updates on orders by interpreting raw database statuses into friendly updates.
 
 ### 2.2 Non-Functional Requirements
-*   **Performance:** Page load times should be under 2 seconds; Chat response latency under 1 second.
-*   **Security:** Compliance with PCI-DSS for payments; Data encryption at rest and in transit; Secure authentication (JWT/OAuth).
-*   **Scalability:** Architecture should support an increasing number of concurrent users and agents.
-*   **Reliability:** 99.9% uptime target.
-*   **Usability:** Mobile-responsive design; Intuitive chat interface.
+*   **Reasoning Speed**: Multi-agent routing should not exceed 3 seconds for complex multi-worker handoffs.
+*   **Security**: Agents must have **zero-access** to other users' data (Strict `user_id` injection).
+*   **Usability**: The Assistant must support "Rich Interactions" (buttons inside chat for quick confirmations).
 
 ### 2.3 Constraints and Assumptions
-*   **Constraints:**
-    *   The project uses the Model Context Protocol (MCP) for agent interactions.
-    *   Initial release is limited to a "Basic" feature set (MVP).
-*   **Assumptions:**
-    *   Third-party payment gateway APIs will be available and stable.
-    *   The user will consent to the AI agent taking actions on their account.
+*   **Constraint**: Architecture must strictly use **LangGraph** (no standalone LLM wrappers or MCP).
+*   **Assumption**: The underlying e-commerce database supports concurrent agent/manual updates.
 
 ---
 
 ## 3. Stakeholders and Roles
 
-| Role | Description | Responsibilities |
-| :--- | :--- | :--- |
-| **Business Owner (Client)** | The entity funding the project. | Define business goals, Approve requirements, UAT. |
-| **End User (Customer)** | The shopper. | Browse, Buy, Interact with AI Agent. |
-| **System Admin** | Application manager. | Manage catalog, fulfill orders. |
-| **AI/Dev Team** | Technical implementers. | Develop platform, Implement MCP agents. |
+| Role | Multi-Agent Responsibility |
+| :--- | :--- |
+| **Product searcher (Worker)** | Navigates the product DB to find matches for semantic queries. |
+| **Cart Manager (Worker)** | Handles the transactional bridge between AI intent and DB records. |
+| **Supervisor (Controller)** | Routes user messages to the correct specialist and formats final responses. |
 
 ---
 
 ## 4. Process Flows / Use Cases
 
-### 4.1 Use Case: Manual Purchase
-1.  User logs in and browses the catalog.
-2.  User adds item to cart.
-3.  User proceeds to checkout, enters details, and pays.
-4.  System generates Order ID.
+### 4.1 Use Case: Complex Task Delegation
+1.  **User**: "Check my cart, find a matching bag for the shoes there, and add it."
+2.  **Supervisor**: Interprets two tasks.
+3.  **Handoff A**: **CartManager** reads current cart; identifies "Red Shoes".
+4.  **Handoff B**: **ProductSearch** looks for "Red Bag" matching the shoes.
+5.  **Handoff C**: **CartManager** adds the new bag.
+6.  **Supervisor**: Confirms the complete journey to the user.
 
-### 4.2 Use Case: AI-Assisted Purchase
-1.  User opens Chat and types: "Find running shoes size 10 and buy them."
-2.  **Orchestrator Agent** parses intent and delegates to **Search Agent**.
-3.  **Search Agent** returns options.
-4.  User selects an option via chat confirmation.
-5.  **Transaction Agent** executes "Add to Cart" and "Proceed to Checkout" actions.
-6.  Agent asks for final confirmation before payment.
-7.  Order is placed; Agent confirms "Order #123 placed successfully."
+### 4.2 Use Case: AI-Assisted Checkout & Tracking
+1.  **User**: "Is my order here yet?"
+2.  **Supervisor** -> **OrderTracker Agent**.
+3.  **Agent**: "Your latest order #123 is currently in 'Shipped' status. It should arrive by Friday."
 
 ---
 
 ## 5. Data Requirements
-
-*   **User Data:** ID, Name, Email, Password Hash, Saved Addresses, Chat History/Context.
-*   **Product Data:** ID, Name, Description, SKU, Price, Stock Quantity, Category, Image URL.
-*   **Order Data:** Order ID, User ID, List of Items (Product ID, Qty, Price), Total Amount, Shipping Address, Status, Timestamp.
-*   **Agent Logs:** Intent logs, Action traces, MCP message exchanges.
+*   **Agent State**: Persisting the "next" node and conversation history in the Database.
+*   **Tool Schema**: Standardized input/output for `search_products`, `view_cart`, `add_to_cart`, and `checkout`.
 
 ---
 
 ## 6. Success Metrics / Acceptance Criteria
-
-1.  **Functional Success:** Users can complete a full purchase cycle both manually and via the AI agent without errors.
-2.  **Agent Accuracy:** The AI agent correctly interprets and executes user commands >90% of the time.
-3.  **Performance:** System handles simultaneous manual and agent-driven traffic without degradation.
-4.  **Admin Efficiency:** Admin can create a new product and see it live within 1 minute.
+*   95% accuracy in routing between Search and Cart managers.
+*   Successful injection of `user_id` into all worker tool-calls.
+*   Zero "Tool-Loop" errors where agents repeatedly call the same tool incorrectly.
 
 ---
 
 ## 7. Risks and Mitigations
-
 | Risk | Impact | Mitigation Strategy |
 | :--- | :--- | :--- |
-| **AI Hallucination** | Agent buys wrong item or gives bad info. | Implement "Human-in-the-loop" confirmation steps before financial transactions. |
-| **Security Breach via Agent** | Malicious injection attacks via chat. | Strict input sanitization; Agent permission scopes (MCP security layers). |
-| **Payment Integration Failure** | Loss of revenue. | Sandbox testing; Fallback manual payment options. |
-| **Complexity of MCP** | Development delays. | Start with simplified single-agent flows before expanding to complex multi-agent orchestration. |
+| **Agent Hallucination** | High | Use structured Pydantic models for Supervisor routing. |
+| **Infinite Routing Loop** | Medium | Implement recursion limits in LangGraph configuration. |
+
+---
+
+# Recreation Prompt: Business Requirement Document (BRD)
+
+> **Role**: You are a Business Analyst.
+> **Requirement**: The client has already implemented a basic e-commerce website that allows customers to browse products, add items to the cart, purchase them securely, and track orders. The system also includes a simple admin section for managing products and orders. Now, the client wants to extend the system by adding an AI-powered Assistant using a Multi-Agent architecture, so that instead of manually performing actions like adding items to cart, checkout, and order tracking, the Assistant can perform these actions automatically based on user prompts. The Assistant will work as a chatbot interface embedded within the existing e-commerce platform, where the user can interact conversationally, and the system will coordinate multiple internal agents to complete tasks such as product discovery, cart updates, checkout initiation, and order tracking.
+> **Task**: Generate a comprehensive Business Requirement Document (BRD) for the creation of the E-commerce Assistant using a Multi-Agent Architecture.
+> **Sections Required**: Introduction (Purpose, Background, Scope, Objectives), Business Requirements (Functional, Non-Functional, Constraints/Assumptions), Stakeholders and Roles, Process Flows / Use Cases (Conversational shopping, Agent-led cart management/checkout/tracking), Data Requirements, Success Metrics / Acceptance Criteria, Risks and Mitigations.
+> **Tone**: Professional, client-facing, clear, structured, and business-focused.
+

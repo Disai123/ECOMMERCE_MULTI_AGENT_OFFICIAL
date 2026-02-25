@@ -1,101 +1,89 @@
-# UI/UX Wireframes Document: E-commerce Platform with Multi-Agent Assistant
+# UI/UX Wireframes: Multi-Agent E-commerce Assistant
 
 ## 1. Overview
-The goal of this application is to provide a user-friendly, modern e-commerce experience that seamlessly integrates a "Do-It-For-Me" AI assistant. The design focuses on clarity, trust, and ease of use, ensuring that both manual shopping and AI-assisted tasks feel natural and efficient.
-
-- **Primary Goal:** Convert visitors into customers using traditional browsing or AI-driven automation.
-- **Secondary Goal:** Provide admins with a streamlined way to manage products and orders.
-- **Design Aesthetic:** Clean, premium, and interactive with clearly defined areas for the AI assistant.
-
----
+The user interface is designed to facilitate a "Delegated Shopping" experience. The core component is a state-aware **Multi-Agent Chat Widget** that dynamically reflects the specialized workers (Search Agent, Cart Agent) as they perform tasks on behalf of the user.
 
 ## 2. User Flows
 
-### A. Manual Shopping Flow
-1. **Landing:** Home Page -> Browse Categories.
-2. **Discovery:** Click Product -> View Product Details.
-3. **Carting:** Click "Add to Cart" -> Open Mini-Cart/Cart Page.
-4. **Checkout:** Cart Page -> Shipping Details -> Payment -> Confirmation.
-
-### B. AI-Assisted Shopping Flow (The "Agent" Experience)
-1. **Initiation:** User clicks Chat Widget on any page.
-2. **Request:** User types: "Find me a blue jacket under $50."
-3. **Selection:** Agent displays filtered list in chat -> User selects item.
-4. **Automation:** Agent performs "Add to Cart" -> Agent asks "Should I proceed to checkout for you?".
-5. **Confirmation:** User agrees -> Agent populates shipping/payment (if saved) -> User gives final approval -> Order placed.
-
----
+### Flow: Multi-Agent Collaborative Task
+1.  **Start**: User clicks the Chat Widget.
+2.  **Request**: User: "Find me blue shoes and add them to my cart if they are under $60."
+3.  **Handoff 1 (Search)**: Widget shows status: `[ ProductSearch Agent is scanning catalog... ]`.
+4.  **Display**: Agent shows 2-3 matched products as interactive cards.
+5.  **Handoff 2 (Cart)**: Widget shows status: `[ CartManager Agent is updating your cart... ]`.
+6.  **Confirmation**: Agent: "I've added the Nike Blue Runners ($55) to your cart. Ready to checkout?"
 
 ## 3. Screen List
+-   **Persistent UI**: Floating Chat Widget (Bottom-Right).
+-   **Storefront Integration**: Navbar Cart Badge (Syncs with Agent actions).
+-   **Agent Response Views**:
+    -   Natural Language Bubbles.
+    -   Structured Product Rich-Cards.
+    -   Status Progress Indicators (Agent Handoffs).
 
-### Customer Facing
-- **Home Page:** Featured products, categories, hero banner.
-- **Product Listing Page (PLP):** Filterable grid of products.
-- **Product Detail Page (PDP):** Images, description, price, buy buttons.
-- **Cart Page/Drawer:** List of items, quantity adjustment, subtotal.
-- **Checkout Page:** Multi-step form (Shipping, Payment, Review).
-- **Order Confirmation Page:** Success message, order ID, summary.
-- **User Dashboard/Order History:** List of past orders and status.
+## 4. Wireframe Descriptions (ASCII)
 
-### Admin Facing
-- **Admin Dashboard:** Stats Overview.
-- **Product Management:** Table view of products with "Add/Edit" buttons.
-- **Order Management:** Table view of orders with "Update Status" options.
+### 4.1 Multi-Agent Chat Widget (Active State)
+**Purpose**: Displays the real-time handoffs between specialized agents.
 
-### Global Components
-- **Navbar:** Logo, Search bar, Account, Cart icon.
-- **AI Assistant Widget:** Floating button that opens a chat interface.
+```
++------------------------------------------------+
+| [O] Assistant: Ready to Help               [X] |
++------------------------------------------------+
+| (User) Find running shoes and checkout.        |
+|                                                |
+| [ SEARCH AGENT ] <---------------------------+ |
+| * Scanning inventory for 'running shoes'...    | | [Status]
+|                                                | |
+| (Bot) I found these matches:                   | |
+| +--------------------------------------------+ |
+| | [Img] Velocity Pro - $49.00  [Add to Cart] | |
+| +--------------------------------------------+ |
+|                                                |
+| [ CART AGENT ] <-----------------------------+ |
+| * Injecting user_id: 101...                    | | [Status]
+| * Adding Velocity Pro to secure cart...        | |
+|                                                |
+| (Bot) Velocity Pro added. Your total is $49.00.|
+| Should I proceed to the checkout page?         |
+|                                                |
+| [ Yes, Proceed ]         [ No, Keep Shopping ] |
+|                                                |
+| [ Type your request... ]                [Send] |
++------------------------------------------------+
+```
 
----
+### 4.2 Integrated Product Card (Inside Chat)
+**Purpose**: Allow users to interact with agent-discovered items without leaving the chat.
 
-## 4. Wireframe Descriptions
+```
++--------------------------------------+
+| [IMG: SHOE]   Velocity Pro Elite     |
+| Price: $49.00  |  Stock: 5 left      |
+|                                      |
+| [ Select & Add ]  [ View Details ]   |
++--------------------------------------+
+```
 
-### 4.1 Home Page
-- **Purpose:** Introduce the brand and direct users to products.
-- **Layout/Sections:**
-  - Header: Logo (Left), Search (Center), Icons (Right).
-  - Hero Banner: Large image with "Shop Now" and "Talk to Assistant" CTAs.
-  - Featured Categories: Icons or circular images.
-  - Trending Products: 4-column grid.
-- **Key Functionalities:** Search bar, category navigation.
-- **Navigation:** Links to PLP, PDP, and Cart.
+### 4.3 Agent Status Indicators
+**Purpose**: Provide transparency during multi-node transitions in LangGraph.
 
-### 4.2 Product Detail Page (PDP)
-- **Purpose:** Provide in-depth info to drive purchase decisions.
-- **Layout/Sections:**
-  - Left: Large product image gallery.
-  - Right: Product Name, Price, Rating, Short Description, Size/Color pickers.
-  - Buttons: "Add to Cart" (Primary), "Ask Assistant about this" (Secondary).
-  - Bottom: Detailed Specs and Customer Reviews.
-- **Key Functionalities:** Dynamic price updates, image zoom, cart interaction.
-- **Navigation:** Breadcrumbs back to PLP, Cart icon to Cart.
+-   **Searching**: `[ ProductSearch: Analyzing Query... ]`
+-   **Carting**: `[ CartManager: Authenticating Session... ]`
+-   **Tracking**: `[ OrderTracker: Fetching Order #123... ]`
 
-### 4.3 AI Assistant Widget (Floating)
-- **Purpose:** Serve as the hub for the Multi-Agent MCP features.
-- **Layout/Sections:**
-  - Chat Window: Header (Agent Name/Icon), Message area (User/Bot bubbles), Input field (Bottom).
-  - Quick Actions: "Track my order," "Find deals," "Checkout now."
-- **Key Functionalities:** 
-  - Natural Language Processing.
-  - Rich Cards: Agent can display product cards inside the chat with "Buy Now" buttons.
-  - Progress States: Show when the agent is "Searching" or "Updating Cart."
-- **Navigation:** Minimizable/Expandable. Can trigger redirects to Cart or Checkout.
-
-### 4.4 Admin - Product Management
-- **Purpose:** Allow admin to control inventory.
-- **Layout/Sections:**
-  - Sidebar: Navigation (Dashboard, Products, Orders).
-  - Main Area: Header with "Add New Product" button + Search/Filter.
-  - Data Table: Image, Name, SKU, Price, Stock, Actions (Edit/Delete).
-- **Key Functionalities:** Inline editing or modal-based forms for product details.
-- **Navigation:** Links to Edit Screen or specific Order details.
-
-### 4.5 Checkout Page
-- **Purpose:** Fast and secure transaction completion.
-- **Layout/Sections:**
-  - Left: Multi-step accordions (1. Shipping, 2. Payment).
-  - Right: Order Summary (Fixed on scroll) showing items and taxes.
-- **Key Functionalities:** Address validation, secure credit card inputs (Stripe/Paypal style).
-- **Navigation:** "Back to Cart" link; Final "Place Order" button leads to Confirmation.
+## 5. Mobile Considerations
+-   The chat widget expands to full-screen on mobile devices.
+-   Rich-cards stack vertically for easier thumb-selection.
+-   Voice-to-Text integration for hands-free "Do-It-For-Me" requests.
 
 ---
+
+# Recreation Prompt: UI / UX Wireframes
+
+> **Role**: You are a UI/UX Designer.
+> **Requirement**: I will provide you with a Business Requirement Document (BRD).
+> **Task**: Based on the BRD, create a clear and simple UI/UX Wireframes Document with sample wireframes for the E-commerce Assistant.
+> **Sections Required**: Overview, User flows (step-by-step), Screen list, Wireframe descriptions (Name, Purpose, Layout/Sections, Functionalities).
+> **Guidelines**: Keep language simple, use bullet points, and provide sample wireframes in ASCII format only.
+
