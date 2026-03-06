@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import api from '../api';
-import { Package, ShoppingBag, TrendingUp, RefreshCcw, LayoutDashboard, Search } from 'lucide-react';
+import { Package, TrendingUp, RefreshCcw, LayoutDashboard, ShoppingBag, Users } from 'lucide-react';
+
+const STATUS_STYLES = {
+    Processing: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+    Shipped: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
+    Delivered: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+    Cancelled: 'bg-red-500/20 text-red-300 border border-red-500/30',
+};
 
 export default function AdminDashboard() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+    useEffect(() => { fetchOrders(); }, []);
 
     const fetchOrders = async () => {
         try {
@@ -17,7 +22,7 @@ export default function AdminDashboard() {
             const res = await api.get('/orders');
             setOrders(res.data);
         } catch (err) {
-            console.error('Error fetching orders:', err);
+            console.error(err);
         } finally {
             setLoading(false);
         }
@@ -25,112 +30,130 @@ export default function AdminDashboard() {
 
     const filteredOrders = filterStatus === 'all'
         ? orders
-        : orders.filter(o => o.status === filterStatus);
+        : orders.filter(o => o.status?.toLowerCase() === filterStatus.toLowerCase());
 
-    const stats = [
-        { label: 'Total Orders', value: orders.length, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Total Revenue', value: `$${orders.reduce((acc, o) => acc + o.total_amount, 0).toFixed(2)}`, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-        { label: 'Avg Order Value', value: `$${orders.length ? (orders.reduce((acc, o) => acc + o.total_amount, 0) / orders.length).toFixed(2) : '0.00'}`, icon: LayoutDashboard, color: 'text-purple-600', bg: 'bg-purple-50' },
+    const totalRevenue = orders.reduce((acc, o) => acc + o.total_amount, 0);
+    const avgOrder = orders.length ? totalRevenue / orders.length : 0;
+
+    const STATS = [
+        { label: 'Total Orders', value: orders.length, icon: ShoppingBag, from: 'from-violet-600', to: 'to-indigo-600' },
+        { label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, icon: TrendingUp, from: 'from-emerald-600', to: 'to-teal-600' },
+        { label: 'Avg Order Value', value: `$${avgOrder.toFixed(2)}`, icon: LayoutDashboard, from: 'from-amber-500', to: 'to-orange-500' },
     ];
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="section-container py-10">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-                    <p className="text-gray-500 text-sm">Monitor sales, inventory, and order fulfillment</p>
+                    <h1 className="font-display text-3xl font-bold gradient-text mb-1">Admin Dashboard</h1>
+                    <p className="text-white/40 text-sm">Monitor orders, revenue, and fulfillment</p>
                 </div>
                 <button
                     onClick={fetchOrders}
-                    className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                    className="btn-outline text-sm !py-2.5 self-start"
                 >
                     <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     Sync Data
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                {stats.map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-6">
-                        <div className={`p-4 rounded-xl ${stat.bg} ${stat.color}`}>
-                            <stat.icon className="w-8 h-8" />
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+                {STATS.map(({ label, value, icon: Icon, from, to }, i) => (
+                    <div key={i} className="glass glass-hover rounded-2xl p-6 flex items-center gap-5 animate-slide-up" style={{ animationDelay: `${i * 80}ms` }}>
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${from} ${to} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                            <Icon className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-400 font-bold uppercase tracking-wider mb-1">{stat.label}</p>
-                            <p className="text-3xl font-extrabold text-gray-800">{stat.value}</p>
+                            <p className="text-white/30 text-xs uppercase tracking-wider font-semibold mb-1">{label}</p>
+                            <p className="font-display font-bold text-white text-2xl">{value}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
-                <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h3 className="font-bold text-gray-800 text-xl">Order Management</h3>
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        {['all', 'pending', 'shipping', 'delivered'].map((s) => (
+            {/* Orders table */}
+            <div className="glass rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '240ms' }}>
+                {/* Table header */}
+                <div className="px-6 py-5 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h3 className="font-display font-bold text-white text-lg flex items-center gap-2">
+                        <Package className="w-5 h-5 text-violet-400" />
+                        Order Management
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                        {['all', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(s => (
                             <button
                                 key={s}
                                 onClick={() => setFilterStatus(s)}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold uppercase transition ${filterStatus === s ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all duration-200 ${filterStatus === s
+                                        ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40'
+                                        : 'glass-sm text-white/40 hover:text-white hover:border-white/20'
+                                    }`}
                             >
                                 {s}
                             </button>
                         ))}
                     </div>
                 </div>
+
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 text-gray-400 text-xs uppercase font-extrabold">
-                            <tr>
-                                <th className="px-6 py-4">ID</th>
-                                <th className="px-6 py-4">Fulfillment Details</th>
-                                <th className="px-6 py-4">Total Amount</th>
-                                <th className="px-6 py-4">Access Status</th>
-                                <th className="px-6 py-4">Transaction Date</th>
+                        <thead>
+                            <tr className="border-b border-white/[0.05]">
+                                {['Order ID', 'Shipping Address', 'Total', 'Status', 'Date'].map(h => (
+                                    <th key={h} className="px-6 py-3.5 text-white/30 text-xs uppercase tracking-widest font-semibold">{h}</th>
+                                ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-white/[0.04]">
                             {loading ? (
                                 [...Array(5)].map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan="5" className="px-6 py-4 h-16 bg-white/50"></td>
+                                    <tr key={i}>
+                                        <td colSpan="5" className="px-6 py-4">
+                                            <div className="skeleton h-8 rounded-lg" />
+                                        </td>
                                     </tr>
                                 ))
                             ) : filteredOrders.length > 0 ? (
-                                filteredOrders.map(order => (
-                                    <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-gray-600">ORD-{order.id}</td>
+                                filteredOrders.map((order, idx) => (
+                                    <tr key={order.id} className="hover:bg-white/[0.03] transition-colors group">
                                         <td className="px-6 py-4">
-                                            <p className="text-sm font-medium text-gray-800 truncate max-w-xs">{order.shipping_address}</p>
+                                            <span className="font-mono font-bold text-violet-400 text-sm">#{order.id}</span>
                                         </td>
-                                        <td className="px-6 py-4 font-extrabold text-indigo-600">${order.total_amount.toFixed(2)}</td>
+                                        <td className="px-6 py-4 max-w-xs">
+                                            <p className="text-white/60 text-sm truncate">{order.shipping_address}</p>
+                                        </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                                                    order.status === 'shipping' ? 'bg-blue-100 text-blue-700' :
-                                                        'bg-yellow-100 text-yellow-700'
-                                                }`}>
-                                                {order.status}
+                                            <span className="gradient-text font-bold">${order.total_amount.toFixed(2)}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`badge ${STATUS_STYLES[order.status] || STATUS_STYLES['Processing']}`}>
+                                                {order.status || 'Processing'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-400 font-medium">
-                                            {new Date(order.created_at).toLocaleDateString(undefined, {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric'
-                                            })}
+                                        <td className="px-6 py-4 text-white/30 text-sm">
+                                            {new Date(order.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500 font-medium">
-                                        No matching orders found in the database.
+                                    <td colSpan="5" className="px-6 py-14 text-center text-white/30 font-medium">
+                                        No orders match the selected filter.
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Footer */}
+                {!loading && filteredOrders.length > 0 && (
+                    <div className="px-6 py-4 border-t border-white/[0.05] text-white/20 text-xs">
+                        Showing {filteredOrders.length} of {orders.length} total orders
+                    </div>
+                )}
             </div>
         </div>
     );

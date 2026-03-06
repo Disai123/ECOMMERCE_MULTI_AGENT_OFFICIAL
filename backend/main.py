@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from pydantic import BaseModel as PydanticBaseModel
 import models, schemas, crud, auth, database
 from database import engine, get_db
 from jose import JWTError, jwt
@@ -132,12 +133,22 @@ def get_orders(current_user: models.User = Depends(get_current_user), db: Sessio
     return crud.get_user_orders(db, user_id=current_user.id)
 
 # AI Agent Route
-class ChatQuery(schemas.BaseModel):
+class HistoryMessage(PydanticBaseModel):
+    role: str       # "user" or "assistant"
     content: str
+
+class ChatQuery(PydanticBaseModel):
+    content: str
+    history: list[HistoryMessage] = []  # full conversation history
 
 @app.post("/chat")
 async def chat_with_agent(query: ChatQuery, current_user: models.User = Depends(get_current_user_optional)):
-    # Use authenticated user's ID if available, otherwise use default user ID (1)
     user_id = current_user.id if current_user else 1
-    response = await run_agent(query.content, user_id)
-    return {"response": response}
+    history = [{"role": m.role, "content": m.content} for m in query.history]
+    response, agents_used, actions = await run_agent(query.content, user_id, history)
+    return {
+        "response":    response,
+        "agents_used": agents_used,
+        "actions":     actions,
+    }
+

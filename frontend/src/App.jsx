@@ -14,7 +14,11 @@ import Profile from './pages/Profile';
 
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = useAuth();
-    if (loading) return null;
+    if (loading) return (
+        <div className="flex items-center justify-center h-screen">
+            <div className="w-10 h-10 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
     if (!user) return <Navigate to="/login" />;
     return children;
 };
@@ -24,7 +28,12 @@ const App = () => {
         <AuthProvider>
             <CartProvider>
                 <BrowserRouter>
-                    <div className="min-h-screen flex flex-col">
+                    {/* Background orbs */}
+                    <div className="orb orb-1" />
+                    <div className="orb orb-2" />
+                    <div className="orb orb-3" />
+
+                    <div className="relative min-h-screen flex flex-col z-10">
                         <Navbar />
                         <main className="flex-1">
                             <Routes>
@@ -39,8 +48,22 @@ const App = () => {
                             </Routes>
                         </main>
                         <AIWidget />
-                        <footer className="bg-white border-t border-slate-100 py-8 text-center text-slate-400 text-sm">
-                            &copy; 2025 E-Shop Agent. Built with ❤️ and AI.
+
+                        {/* Footer */}
+                        <footer className="relative border-t border-white/[0.06] py-8 mt-12">
+                            <div className="section-container flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+                                        <span className="text-[10px] font-bold text-white">S</span>
+                                    </div>
+                                    <span className="font-display font-semibold gradient-text">ShopEasy</span>
+                                </div>
+                                <p className="text-white/30 text-sm">© 2025 ShopEasy Multi-Agent. Powered by Gemini & LangGraph.</p>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-white/40 text-xs">AI Agents Online</span>
+                                </div>
+                            </div>
                         </footer>
                     </div>
                 </BrowserRouter>
