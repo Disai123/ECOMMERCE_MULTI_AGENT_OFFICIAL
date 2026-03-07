@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
                 try {
                     const res = await api.get('/users/me');
                     setUser(res.data);
-                } catch (err) {
+                } catch {
                     localStorage.removeItem('token');
                 }
             }
@@ -33,16 +33,28 @@ export const AuthProvider = ({ children }) => {
         setUser(userRes.data);
     };
 
+    /**
+     * Register a new customer account then auto-login.
+     * Each registered user gets their own isolated cart, orders, and AI agent context.
+     */
+    const register = async (full_name, email, password) => {
+        // 1. Create account
+        await api.post('/register', { full_name, email, password, role: 'customer' });
+        // 2. Immediately log in so the user is authenticated right away
+        await login(email, password);
+    };
+
     const logout = () => {
         localStorage.removeItem('token');
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
 export const useAuth = () => useContext(AuthContext);
+

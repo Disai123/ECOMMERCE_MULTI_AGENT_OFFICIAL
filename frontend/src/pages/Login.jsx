@@ -139,6 +139,14 @@ export default function Login() {
                         </div>
                     </div>
                 </div>
+
+                {/* Footer link */}
+                <p className="text-center text-sm text-white/35 mt-6">
+                    New to ShopEasy?{' '}
+                    <Link to="/register" className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
+                        Create an account →
+                    </Link>
+                </p>
             </div>
         </div>
     );

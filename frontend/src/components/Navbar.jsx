@@ -26,8 +26,8 @@ export default function Navbar() {
 
     return (
         <nav className={`sticky top-0 z-50 transition-all duration-500 ${scrolled
-                ? 'bg-[#0a0a0f]/90 backdrop-blur-2xl border-b border-white/[0.07] shadow-xl shadow-black/30'
-                : 'bg-transparent'
+            ? 'bg-[#0a0a0f]/90 backdrop-blur-2xl border-b border-white/[0.07] shadow-xl shadow-black/30'
+            : 'bg-transparent'
             }`}>
             <div className="section-container">
                 <div className="flex items-center justify-between h-16 md:h-18">
@@ -45,7 +45,7 @@ export default function Navbar() {
                             Home
                         </Link>
 
-                        {user && (
+                        {user?.role === 'admin' && (
                             <Link to="/admin" className={`btn-ghost text-sm ${isActive('/admin') ? 'text-white bg-white/10' : ''}`}>
                                 <LayoutDashboard className="w-4 h-4" /> Dashboard
                             </Link>
@@ -77,9 +77,14 @@ export default function Navbar() {
                                 </button>
                             </div>
                         ) : (
-                            <Link to="/login" className="btn-primary text-sm !py-2.5 !px-5">
-                                Sign In
-                            </Link>
+                            <>
+                                <Link to="/register" className="btn-outline text-sm !py-2.5 !px-4">
+                                    Register
+                                </Link>
+                                <Link to="/login" className="btn-primary text-sm !py-2.5 !px-5">
+                                    Sign In
+                                </Link>
+                            </>
                         )}
                     </div>
 
@@ -98,11 +103,16 @@ export default function Navbar() {
                     {user ? (
                         <>
                             <Link to="/profile" className="block btn-ghost w-full text-left" onClick={() => setMobileOpen(false)}>Profile</Link>
-                            <Link to="/admin" className="block btn-ghost w-full text-left" onClick={() => setMobileOpen(false)}>Dashboard</Link>
+                            {user.role === 'admin' && (
+                                <Link to="/admin" className="block btn-ghost w-full text-left" onClick={() => setMobileOpen(false)}>Dashboard</Link>
+                            )}
                             <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block btn-ghost w-full text-left text-red-400">Logout</button>
                         </>
                     ) : (
-                        <Link to="/login" className="block btn-primary w-full justify-center" onClick={() => setMobileOpen(false)}>Sign In</Link>
+                        <>
+                            <Link to="/register" className="block btn-outline w-full justify-center" onClick={() => setMobileOpen(false)}>Register</Link>
+                            <Link to="/login" className="block btn-primary w-full justify-center" onClick={() => setMobileOpen(false)}>Sign In</Link>
+                        </>
                     )}
                 </div>
             )}
