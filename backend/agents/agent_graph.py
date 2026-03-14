@@ -11,6 +11,7 @@ import operator
 from typing import TypedDict, Annotated, List, Literal
 
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import (
     BaseMessage, HumanMessage, AIMessage, ToolMessage, SystemMessage
 )
@@ -106,7 +107,14 @@ class AgentState(TypedDict):
 # LLM
 # ─────────────────────────────────────────────────────────────────────────────
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
+# Primary Model: Gemini
+gemini_llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
+
+# Fallback Model: Groq (Llama 3.3 70B)
+groq_llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+
+# Combined LLM with Fallback Logic
+llm = gemini_llm.with_fallbacks([groq_llm])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -216,7 +224,11 @@ class Router(BaseModel):
     )
 
 
-_router_chain = llm.with_structured_output(Router)
+# We need structured output to also have fallback, so we apply it to the base models first
+gemini_router = gemini_llm.with_structured_output(Router)
+groq_router   = groq_llm.with_structured_output(Router)
+
+_router_chain = gemini_router.with_fallbacks([groq_router])
 
 
 def supervisor_node(state: AgentState) -> dict:

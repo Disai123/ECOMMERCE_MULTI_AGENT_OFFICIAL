@@ -11,6 +11,7 @@ python-multipart
 langgraph
 langchain
 langchain-google-genai
+langchain-groq
 python-dotenv
 pytest
 httpx
